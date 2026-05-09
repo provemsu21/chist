@@ -30,7 +30,7 @@ target_include_directories(chist_system PUBLIC src/)
 add_library(chist_cleaner STATIC
     src/cleaner/Cleaner.cpp
 )
-target_include_directories(chist_system PUBLIC src/)
+target_include_directories(chist_cleaner PUBLIC src/)
 target_link_libraries(chist_cleaner PRIVATE chist_core chist_platform)
 
 add_executable(chist src/main.cpp)
