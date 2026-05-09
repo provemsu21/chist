@@ -36,7 +36,7 @@ template <size_t N> std::string toHex(const unsigned char (&raw)[N]) {
 
   return std::string(hex);
 }
-} // anonymous namespace
+} // namespace
 
 std::string MD5Algorithm::compute(const fs::path &path) const {
   CC_MD5_CTX c;
