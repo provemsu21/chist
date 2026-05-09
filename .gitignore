@@ -5,3 +5,5 @@ build/
 CMakeCache.txt
 CMakeFiles/
 compile_commands.json
+.clang-format
+.cache
