@@ -12,6 +12,9 @@ add_library(chist_core STATIC
     src/core/Deduplicator.cpp
 )
 target_include_directories(chist_core PUBLIC src/)
+target_compile_options(chist_core PRIVATE
+    $<$<BOOL:${APPLE}>:-Wno-deprecated-declarations>
+)
 
 add_library(chist_platform STATIC)
 if(APPLE)
