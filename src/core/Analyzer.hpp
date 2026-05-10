@@ -14,9 +14,9 @@ struct FileEntry {
 };
 
 struct DiskInfo {
-  std::string capacity;
-  std::string free;
-  std::string available;
+  uintmax_t capacity;
+  uintmax_t free;
+  uintmax_t available;
 };
 
 DiskInfo getDiskInfo(const fs::path &path = "/");

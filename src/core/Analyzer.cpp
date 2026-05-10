@@ -1,34 +1,15 @@
 #include "Analyzer.hpp"
-
 #include <ranges>
 
 using namespace analyzer;
 namespace ranges = std::ranges;
 
-namespace {
-std::string toHuman(uintmax_t size) {
-  std::vector<std::string> pref = {"b", "Kb", "Mb", "Gb", "Tb"};
-  int pref_idx = 0;
-
-  double tmp = size;
-  while (tmp >= 1024 && pref_idx < (int)pref.size() - 1) {
-    tmp /= 1024;
-    pref_idx++;
-  }
-
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%.1f%s", tmp, pref[pref_idx].c_str());
-
-  return std::string(buf);
-}
-} // namespace
-
 DiskInfo getDiskInfo(const fs::path &path) {
   fs::space_info si = fs::space(path);
   DiskInfo di;
-  di.available = toHuman(si.available);
-  di.capacity = toHuman(si.capacity);
-  di.free = toHuman(si.free);
+  di.available = si.available;
+  di.capacity = si.capacity;
+  di.free = si.free;
 
   return di;
 }
