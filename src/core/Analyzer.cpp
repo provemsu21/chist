@@ -1,11 +1,16 @@
 #include "Analyzer.hpp"
+#include "FsWalker.hpp"
 #include <ranges>
+#include <system_error>
 
-using namespace analyzer;
+namespace analyzer {
 namespace ranges = std::ranges;
 
 DiskInfo getDiskInfo(const fs::path &path) {
-  fs::space_info si = fs::space(path);
+  std::error_code ec;
+  fs::space_info si = fs::space(path, ec);
+  if (ec)
+    return {};
   DiskInfo di;
   di.available = si.available;
   di.capacity = si.capacity;
@@ -17,14 +22,9 @@ DiskInfo getDiskInfo(const fs::path &path) {
 std::vector<FileEntry> getTopFiles(const fs::path &path, size_t limit) {
   std::vector<FileEntry> files;
 
-  for (const fs::directory_entry &dir_entry :
-       fs::recursive_directory_iterator(path)) {
-    if (!dir_entry.is_regular_file())
-      continue;
-    fs::path filepath = dir_entry.path();
-    uintmax_t filesize = fs::file_size(filepath);
-    files.push_back({filepath, filesize});
-  }
+  fswalker::walk(path, [&files](const fs::path &p, const struct stat &st) {
+    files.push_back({p, static_cast<uintmax_t>(st.st_size)});
+  });
 
   ranges::sort(files, ranges::greater(), &FileEntry::size);
 
@@ -33,3 +33,4 @@ std::vector<FileEntry> getTopFiles(const fs::path &path, size_t limit) {
 
   return files;
 }
+} // namespace analyzer
