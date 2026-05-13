@@ -10,6 +10,7 @@ add_library(chist_core STATIC
     src/core/Hasher.cpp
     src/core/Analyzer.cpp
     src/core/Deduplicator.cpp
+    src/core/FsWalker.cpp
 )
 target_include_directories(chist_core PUBLIC src/)
 target_compile_options(chist_core PRIVATE
@@ -37,7 +38,25 @@ add_library(chist_cleaner STATIC
 target_include_directories(chist_cleaner PUBLIC src/)
 target_link_libraries(chist_cleaner PRIVATE chist_core chist_platform)
 
+add_library(chist_cli STATIC
+    src/cli/CmdClean.cpp
+    src/cli/CmdDupes.cpp
+    src/cli/CmdJunk.cpp
+    src/cli/CmdScan.cpp
+    src/cli/CmdSysinf.cpp
+    src/cli/CmdTop.cpp
+    src/cli/CommandRegistry.cpp)
+target_include_directories(chist_cli PUBLIC src/)
+target_link_libraries(chist_cli PRIVATE chist_core
+                                        chist_platform
+                                        chist_cleaner
+                                        chist_system)
+
 add_executable(chist src/main.cpp)
 
 
-target_link_libraries(chist PRIVATE chist_core chist_platform chist_system chist_cleaner)
+target_link_libraries(chist PRIVATE chist_core
+                                    chist_platform
+                                    chist_system
+                                    chist_cleaner
+                                    chist_cli)
