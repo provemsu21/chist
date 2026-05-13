@@ -1,4 +1,5 @@
 #include "SystemInfo.hpp"
+#include <libproc.h>
 #include <ranges>
 
 namespace systeminfo {
@@ -8,6 +9,19 @@ namespace ranges = std::ranges;
 
 #include <mach/mach.h>
 #include <sys/sysctl.h>
+
+namespace {
+
+uint64_t getProcessMemory(pid_t pid) {
+  proc_taskinfo info{};
+  int rc = proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &info, sizeof(info));
+  if (rc < static_cast<int>(sizeof(info))) {
+    return 0;
+  }
+  return info.pti_resident_size;
+}
+
+} // namespace
 
 RAMStat getRamStat() {
   mach_port_t host = mach_host_self();
@@ -57,7 +71,7 @@ std::vector<ProcStat> getTopProcs(size_t limit) {
     ProcStat ps;
     ps.pid = p.kp_proc.p_pid;
     ps.name = p.kp_proc.p_comm;
-    ps.mem = 0;
+    ps.mem = getProcessMemory(ps.pid);
     procs_vec.push_back(ps);
   }
 
