@@ -62,12 +62,15 @@ std::vector<ProcStat> getTopProcs(size_t limit) {
     return {};
 
   std::vector<kinfo_proc> procs(size / sizeof(kinfo_proc));
-  status = sysctl(mib, 4, procs.data(), &size, nullptr, 0);
-  if (status != 0)
+  if (sysctl(mib, 4, procs.data(), &size, nullptr, 0) != 0) {
     return {};
+  }
+  procs.resize(size / sizeof(kinfo_proc));
 
   std::vector<ProcStat> procs_vec;
   for (const kinfo_proc &p : procs) {
+    if (p.kp_proc.p_pid == 0)
+      continue;
     ProcStat ps;
     ps.pid = p.kp_proc.p_pid;
     ps.name = p.kp_proc.p_comm;
