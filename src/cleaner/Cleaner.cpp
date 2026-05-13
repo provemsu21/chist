@@ -1,7 +1,7 @@
 #include "Cleaner.hpp"
 #include <filesystem>
 
-using namespace cleaner;
+namespace cleaner {
 
 CleanResult clean(const std::vector<fs::path> &files) {
   size_t deleted_cnt = 0;
@@ -18,3 +18,4 @@ CleanResult clean(const std::vector<fs::path> &files) {
 
   return {deleted_cnt, deleted_sz};
 }
+} // namespace cleaner

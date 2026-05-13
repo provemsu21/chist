@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-using namespace hasher;
+namespace hasher {
 
 #ifdef __APPLE__
 
@@ -76,3 +76,4 @@ std::string MD5Algorithm::compute(const fs::path &path) const {}
 std::string SHA256Algorithm::compute(const fs::path &path) const {}
 
 #endif
+} // namespace hasher

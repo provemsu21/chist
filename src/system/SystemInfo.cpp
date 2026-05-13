@@ -1,7 +1,7 @@
 #include "SystemInfo.hpp"
 #include <ranges>
 
-using namespace systeminfo;
+namespace systeminfo {
 namespace ranges = std::ranges;
 
 #ifdef __APPLE__
@@ -73,3 +73,4 @@ std::vector<ProcStat> getTopProcs(size_t limit) {
 RAMStat getRamStat() {}
 std::vector<ProcStat> getTopProcs(size_t limit) {}
 #endif
+} // namespace systeminfo
