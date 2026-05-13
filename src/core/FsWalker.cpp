@@ -17,10 +17,17 @@ struct FileId {
   bool operator==(const FileId &) const = default;
 };
 
+template <typename T>
+inline void hash_combine(std::size_t &seed, const T &v) noexcept {
+  seed ^= std::hash<T>{}(v) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+}
+
 struct FileHash {
   size_t operator()(const FileId &id) const noexcept {
-    return std::hash<dev_t>{}(id.dev) ^
-           (std::hash<ino_t>{}(id.ino) << 1); // TODO: hash_combine
+    std::size_t seed = 0;
+    hash_combine(seed, id.dev);
+    hash_combine(seed, id.ino);
+    return seed;
   }
 };
 
