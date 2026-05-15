@@ -1,30 +1,53 @@
 #include "Hasher.hpp"
+
+#include <array>
+#include <cerrno>
+#include <cstdio>
+#include <limits>
+
+#ifdef __APPLE__
 #include <CommonCrypto/CommonDigest.h>
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 
 namespace hasher {
 
 #ifdef __APPLE__
 
 namespace {
+
 template <typename Update>
-void read_chunks(const fs::path &path, Update update) {
+bool read_chunks(const fs::path &path, Update update,
+                 size_t max_bytes = std::numeric_limits<size_t>::max()) {
   int fd = open(path.c_str(), O_RDONLY);
   if (fd == -1) {
-    return;
+    return false;
   }
 
-  char buf[4096];
+  std::array<char, 64 * 1024> buf;
+  size_t total = 0;
+  while (total < max_bytes) {
+    size_t want = std::min(max_bytes - total, buf.size());
+    ssize_t n;
+    do {
+      n = read(fd, buf.data(), want);
+    } while (n < 0 && errno == EINTR);
 
-  while (ssize_t n = read(fd, buf, sizeof(buf))) {
-    if (n == -1) {
+    if (n == 0)
+      break;
+
+    if (n < 0) {
       close(fd);
-      return;
+      return false;
     }
-    update(buf, n);
+
+    update(buf.data(), static_cast<size_t>(n));
+    total += static_cast<size_t>(n);
   }
+
   close(fd);
+  return true;
 }
 
 template <size_t N> std::string toHex(const unsigned char (&raw)[N]) {
@@ -41,10 +64,12 @@ template <size_t N> std::string toHex(const unsigned char (&raw)[N]) {
 std::string MD5Algorithm::compute(const fs::path &path) const {
   CC_MD5_CTX c;
   CC_MD5_Init(&c);
-
-  read_chunks(path,
-              [&c](const char *buf, ssize_t n) { CC_MD5_Update(&c, buf, n); });
-
+  bool ok = read_chunks(path, [&c](const char *buf, size_t n) {
+    CC_MD5_Update(&c, buf, static_cast<CC_LONG>(n));
+  });
+  if (!ok) {
+    return {};
+  }
   unsigned char hash[CC_MD5_DIGEST_LENGTH];
 
   if (CC_MD5_Final(hash, &c) != 1) {
@@ -54,19 +79,62 @@ std::string MD5Algorithm::compute(const fs::path &path) const {
   return toHex(hash);
 }
 
+std::string MD5Algorithm::computeHead(const fs::path &path,
+                                      size_t bytes) const {
+  CC_MD5_CTX c;
+  CC_MD5_Init(&c);
+  bool ok = read_chunks(
+      path,
+      [&c](const char *buf, size_t n) {
+        CC_MD5_Update(&c, buf, static_cast<CC_LONG>(n));
+      },
+      bytes);
+  if (!ok) {
+    return {};
+  }
+  unsigned char hash[CC_MD5_DIGEST_LENGTH];
+
+  if (CC_MD5_Final(hash, &c) != 1) {
+    return {};
+  }
+  return toHex(hash);
+}
+
 std::string SHA256Algorithm::compute(const fs::path &path) const {
   CC_SHA256_CTX c;
   CC_SHA256_Init(&c);
-
-  read_chunks(
-      path, [&c](const char *buf, ssize_t n) { CC_SHA256_Update(&c, buf, n); });
-
+  bool ok = read_chunks(path, [&c](const char *buf, size_t n) {
+    CC_SHA256_Update(&c, buf, static_cast<CC_LONG>(n));
+  });
+  if (!ok) {
+    return {};
+  }
   unsigned char hash[CC_SHA256_DIGEST_LENGTH];
 
   if (CC_SHA256_Final(hash, &c) != 1) {
     return {};
   }
 
+  return toHex(hash);
+}
+
+std::string SHA256Algorithm::computeHead(const fs::path &path,
+                                         size_t bytes) const {
+  CC_SHA256_CTX c;
+  CC_SHA256_Init(&c);
+  bool ok = read_chunks(
+      path,
+      [&c](const char *buf, size_t n) {
+        CC_SHA256_Update(&c, buf, static_cast<CC_LONG>(n));
+      },
+      bytes);
+  if (!ok) {
+    return {};
+  }
+  unsigned char hash[CC_SHA256_DIGEST_LENGTH];
+  if (CC_SHA256_Final(hash, &c) != 1) {
+    return {};
+  }
   return toHex(hash);
 }
 

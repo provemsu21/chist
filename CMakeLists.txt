@@ -53,7 +53,7 @@ target_link_libraries(chist_cli PRIVATE chist_core
                                         chist_system)
 
 add_executable(chist src/main.cpp)
-
+target_compile_options(chist PRIVATE -Wall -Wextra -Wshadow -Wpedantic)
 
 target_link_libraries(chist PRIVATE chist_core
                                     chist_platform

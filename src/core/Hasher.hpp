@@ -16,15 +16,22 @@ concept HashAlgorithm = requires(Algo a, const fs::path &path) {
 
 struct MD5Algorithm {
   std::string compute(const fs::path &path) const;
+  std::string computeHead(const fs::path &path, size_t bytes) const;
 };
 
 struct SHA256Algorithm {
   std::string compute(const fs::path &path) const;
+  std::string computeHead(const fs::path &path, size_t bytes) const;
 };
 
 template <HashAlgorithm Algo>
 std::string getHash(const fs::path &path, Algo algo) {
   return algo.compute(path);
+}
+
+template <HashAlgorithm Algo>
+std::string getHeadHash(const fs::path &path, size_t bytes, Algo algo) {
+  return algo.computeHead(path, bytes);
 }
 
 } // namespace hasher
