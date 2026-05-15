@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_compile_definitions($<$<CONFIG:Debug>:CHIST_DEBUG>)
+add_compile_options(-Wall -Wextra -Wshadow -Wpedantic)
+
 add_library(chist_core STATIC
     src/core/Hasher.cpp
     src/core/Analyzer.cpp
@@ -53,7 +56,6 @@ target_link_libraries(chist_cli PRIVATE chist_core
                                         chist_system)
 
 add_executable(chist src/main.cpp)
-target_compile_options(chist PRIVATE -Wall -Wextra -Wshadow -Wpedantic)
 
 target_link_libraries(chist PRIVATE chist_core
                                     chist_platform
