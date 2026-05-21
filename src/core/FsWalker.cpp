@@ -1,4 +1,5 @@
 #include "FsWalker.hpp"
+#include <cstdlib>
 #include <filesystem>
 #include <functional>
 #include <string_view>
@@ -44,11 +45,58 @@ bool isInBlocked(const fs::path &p) {
       "/.TemporaryItems",
       "/.Trashes",
   };
+  static const std::vector<fs::path> user_blocked = [] {
+    const char *home = getenv("HOME");
+    if (!home)
+      return std::vector<fs::path>{};
+    const fs::path h = fs::path(home);
+    return std::vector<fs::path>{
+        h / "Library" / "Caches",
+        h / "Library" / "Containers",
+        h / "Library" / "Application Support" / "CrashReporter",
+        h / "Library" / "Logs",
+        h / "Library" / "Saved Application State",
+        h / "Library" / "WebKit",
+        h / "Library" / "HTTPStorages",
+        h / "Library" / "Cookies",
+
+        h / "Library" / "Developer" / "Xcode" / "DerivedData",
+        h / "Library" / "Developer" / "CoreSimulator" / "Caches",
+        h / "Library" / "Application Support" / "Code" / "Cache",
+        h / "Library" / "Application Support" / "Code" / "CachedData",
+        h / "Library" / "Application Support" / "Code" / "logs",
+        h / "Library" / "Application Support" / "Google" / "Chrome" /
+            "Default" / "Cache",
+        h / "Library" / "Application Support" / "Firefox" / "Profiles",
+        h / "Library" / "Application Support" / "JetBrains" / "Toolbox" /
+            "logs",
+
+        h / ".Trash",
+
+        h / ".npm",
+        h / ".yarn" / "cache",
+        h / ".cache",
+        h / ".gradle" / "caches",
+        h / ".cargo" / "registry",
+        h / "Library" / "pnpm" / "store",
+        h / "go" / "pkg" / "mod" / "cache",
+
+        h / ".pyenv" / "cache",
+        h / ".nvm" / ".cache",
+    };
+  }();
+
   const std::string s = p.string();
   for (std::string_view b : blocked) {
     if (s == b || s.starts_with(std::string(b) + "/")) {
       return true;
     }
+  }
+
+  for (const fs::path &ub : user_blocked) {
+    const std::string bs = ub.string();
+    if (s == bs || s.starts_with(bs + "/"))
+      return true;
   }
   return false;
 }
