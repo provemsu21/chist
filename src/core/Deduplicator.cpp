@@ -2,34 +2,58 @@
 #include "FsWalker.hpp"
 #include "Hasher.hpp"
 #include "Log.hpp"
+#include "ThreadPool.hpp"
+#include <atomic>
+#include <mutex>
 #include <unordered_map>
 
 namespace deduplicator {
 
 namespace {
-template <typename Algo>
-HashTable calcAndGroup(
-    const std::unordered_map<std::string, std::vector<fs::path>> &by_head,
-    const Algo &algo) {
-  HashTable table;
+template <typename Key>
+std::vector<std::pair<Key, fs::path>>
+toVector(const std::unordered_map<Key, std::vector<fs::path>> &map) {
+  std::vector<std::pair<Key, fs::path>> vec;
 
-  size_t cnt = 0;
-  for (auto &[h, vec] : by_head) {
-    for (const fs::path &p : vec) {
-
-      if (++cnt % 1000 == 0) {
-        LOG_DEBUG("Hashed " << cnt << " files, current: " << p.string());
-      }
-      std::string hash = hasher::getHash(p, algo);
-      if (hash.empty()) {
-        continue;
-      }
-      table[hash].push_back(p);
+  for (const auto &[key, v] : map) {
+    for (const auto &p : v) {
+      vec.emplace_back(key, p);
     }
   }
 
-  LOG_DEBUG("Files full hashed: " << cnt
-                                  << " -> Groups formed: " << table.size());
+  return vec;
+}
+
+template <typename Algo>
+HashTable calcAndGroup(const HashTable &by_head, const Algo &algo) {
+  LOG_DEBUG("calcAndGroup started");
+  std::vector<std::pair<std::string, fs::path>> by_head_vec;
+  {
+    TIME_SCOPE("create simple vector [head_hash, file]");
+    by_head_vec = toVector(by_head);
+  }
+  HashTable table;
+  std::mutex tm;
+
+  std::atomic<size_t> cnt{0};
+
+  {
+    TIME_SCOPE("sort by full hash");
+    threadpool::parallel_for_each(
+        by_head_vec, [&algo, &table, &cnt, &tm](const auto &pair) {
+          const auto &[head_hash, file] = pair;
+          std::string hash = hasher::getHash(file, algo);
+          if (hash.empty()) {
+            return;
+          }
+          std::lock_guard<std::mutex> lock(tm);
+          table[hash].push_back(file);
+          ++cnt;
+        });
+  }
+
+  LOG_DEBUG("Files with same full hash: " << cnt << " -> Groups formed: "
+                                          << table.size());
 
   return table;
 }
@@ -65,8 +89,13 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
   LOG_DEBUG("Files scanned: " << files_cnt
                               << " -> Groups formed: " << by_size.size());
 
-  constexpr size_t HEAD_BYTES = 4096;
-  std::unordered_map<std::string, std::vector<fs::path>> by_head;
+  std::vector<std::pair<uintmax_t, fs::path>> all_files;
+  {
+    TIME_SCOPE("create simple vector [size, file]");
+    all_files = toVector(by_size);
+  }
+
+  constexpr size_t HEAD_BYTES = 512;
 
   auto hashHead = [&](const fs::path &p) -> std::string {
     if (type == HashType::MD5) {
@@ -76,23 +105,26 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
     }
   };
 
-  size_t head_files_cnt = 0;
+  std::atomic<size_t> head_files_cnt{0};
+
+  std::unordered_map<std::string, std::vector<fs::path>> by_head;
+  std::mutex hm;
 
   {
     TIME_SCOPE("sort by hash head");
-    for (auto &[sz, vec] : by_size) {
-      for (const auto &p : vec) {
 
-        std::string head = hashHead(p);
-        if (head.empty())
-          continue;
-        if (++head_files_cnt % 10000 == 0) {
-          LOG_DEBUG("Hashed " << head_files_cnt
-                              << " files, current: " << p.string());
-        }
-        by_head[head].push_back(p);
-      }
-    }
+    threadpool::parallel_for_each(
+        all_files,
+        [&hashHead, &by_head, &head_files_cnt, &hm](const auto &pair) {
+          const auto &[sz, file] = pair;
+          std::string head = hashHead(file);
+          if (head.empty())
+            return;
+
+          std::lock_guard<std::mutex> lock(hm);
+          by_head[head].push_back(file);
+          head_files_cnt++;
+        });
   }
 
   {
