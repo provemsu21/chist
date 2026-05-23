@@ -19,9 +19,11 @@ Command makeDupesCmd() {
 
         std::cout << "Found duplicates: " << '\n';
 
+        std::cout << "To finish press \"q\" " << '\n';
+
         std::vector<fs::path> to_clean;
         for (auto &[hash, vec] : table) {
-          std::cout << "Group " << group << '\n';
+          std::cout << "Group " << group++ << '\n';
           std::cout << "Hash " << hash << '\n';
           for (auto &path : vec) {
             std::cout << path << '\n';
@@ -32,6 +34,9 @@ Command makeDupesCmd() {
                       << static_cast<int>(vec.size()) - 1 << ") [y/n]";
 
             std::getline(std::cin, apply);
+            if (apply == "q" || apply == "quit") {
+              break;
+            }
             if (apply == "n" || apply == "no")
               continue;
           }
@@ -39,7 +44,7 @@ Command makeDupesCmd() {
           if (args.yes || apply == "y" || apply == "yes") {
             for (size_t i = 1; i < vec.size(); ++i) {
               if (!fs::is_regular_file(vec[i])) {
-                std::cout << "Failed to delete: " << vec[i].string() << '\n';
+                std::cerr << "Failed to delete: " << vec[i].string() << '\n';
                 continue;
               }
               to_clean.push_back(vec[i]);
