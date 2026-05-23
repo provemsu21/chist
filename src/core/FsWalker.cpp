@@ -54,7 +54,7 @@ bool isInBlocked(const fs::path &p) {
     }
   }
 
-  return cache_detector::shouldSkip(p);
+  return cache_detector::isCache(p);
 }
 
 void walkImpl(const fs::path &dir, const fswalker::Visitor &visitor,

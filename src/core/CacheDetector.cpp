@@ -83,7 +83,7 @@ bool isMacosCachePath(const fs::path &) { return false; }
 
 } // namespace
 
-bool shouldSkip(const fs::path &dir) {
+bool isCache(const fs::path &dir) {
   return hasCacheLikeName(dir) || hasCachedirTag(dir) || isMacosCachePath(dir);
 }
 
