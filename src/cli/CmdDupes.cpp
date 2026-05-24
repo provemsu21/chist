@@ -50,7 +50,6 @@ Command makeDupesCmd() {
               to_clean.push_back(vec[i]);
             }
           }
-          ++group;
         }
 
         auto metrics = cleaner::clean(to_clean);
