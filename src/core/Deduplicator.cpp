@@ -3,13 +3,25 @@
 #include "Hasher.hpp"
 #include "Log.hpp"
 #include "ThreadPool.hpp"
+#include "cli/Style.hpp"
+#include "cli/TtyLine.hpp"
 #include <atomic>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 namespace deduplicator {
 
 namespace {
+
+template <typename Cont> size_t countFiles(const Cont &cont) {
+  size_t total = 0;
+  for (const auto &[f, vec] : cont) {
+    total += vec.size();
+  }
+  return total;
+}
+
 template <typename Key>
 std::vector<std::pair<Key, fs::path>>
 toVector(const std::unordered_map<Key, std::vector<fs::path>> &map) {
@@ -52,8 +64,7 @@ HashTable calcAndGroup(const HashTable &by_head, const Algo &algo) {
         });
   }
 
-  LOG_DEBUG("Files with same full hash: " << cnt << " -> Groups formed: "
-                                          << table.size());
+  LOG_DEBUG("Files with same full hash: " << cnt << "\n");
 
   return table;
 }
@@ -61,23 +72,27 @@ HashTable calcAndGroup(const HashTable &by_head, const Algo &algo) {
 
 HashTable findDuplicates(const fs::path &path, HashType type) {
   LOG_DEBUG("findDuplicated started");
+  tty_line::Cursor cursor_guard{};
 
   std::unordered_map<uintmax_t, std::vector<fs::path>> by_size;
   size_t files_cnt = 0;
 
   {
     TIME_SCOPE("walk + group by size");
-    fswalker::walk(path, [&by_size, &files_cnt](const fs::path &p,
-                                                const struct stat &st) {
-      if (st.st_size == 0) {
-        return;
-      }
-      if (++files_cnt % 100000 == 0) {
-        LOG_DEBUG("Scanned " << files_cnt << " files, current: " << p.string());
-      }
-      uintmax_t sz = static_cast<uintmax_t>(st.st_size);
-      by_size[sz].push_back(p);
-    });
+    fswalker::walk(
+        path, [&by_size, &files_cnt](const fs::path &p, const struct stat &st) {
+          if (st.st_size == 0) {
+            return;
+          }
+          tty_line::updateLine("Scanning: ", p.c_str());
+          uintmax_t sz = static_cast<uintmax_t>(st.st_size);
+          by_size[sz].push_back(p);
+          ++files_cnt;
+        });
+    std::string fin = style::colored(
+        "Scanned: " + std::to_string(files_cnt) + " files", style::green());
+
+    tty_line::finish(fin);
   }
 
   {
@@ -86,7 +101,8 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
                   [](const auto &pair) { return pair.second.size() <= 1; });
   }
 
-  LOG_DEBUG("Files scanned: " << files_cnt
+  LOG_DEBUG("Files scanned: " << files_cnt << "\nDuplicates by size (1 stage): "
+                              << countFiles(by_size)
                               << " -> Groups formed: " << by_size.size());
 
   std::vector<std::pair<uintmax_t, fs::path>> all_files;
@@ -133,8 +149,9 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
                   [](const auto &pair) { return pair.second.size() <= 1; });
   }
 
-  LOG_DEBUG("Files head hashed: " << head_files_cnt
-                                  << " -> Groups formed: " << by_head.size());
+  LOG_DEBUG("Files head hashed: "
+            << head_files_cnt << "\nDuplicates by head_hash (2 stage):"
+            << countFiles(by_head) << " -> Groups formed: " << by_head.size());
 
   HashTable table;
 
@@ -149,6 +166,10 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
     std::erase_if(table,
                   [](const auto &pair) { return pair.second.size() <= 1; });
   }
+
+  LOG_DEBUG("Duplicates by full hash (3 stage):"
+            << countFiles(table) << " -> Groups formed: " << table.size());
+
   return table;
 }
 } // namespace deduplicator
