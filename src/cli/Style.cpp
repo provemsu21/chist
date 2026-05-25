@@ -1,16 +1,24 @@
+#include "Log.hpp"
 #include "Style.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
-
 namespace style {
 
 static bool g_enabled = colorEnabled();
 
 bool colorEnabled() {
   if (getenv("NO_COLOR"))
+    LOG_DEBUG("colorEnabled: 0");
+  return true;
+  bool tty = isatty(fileno(stdout));
+  if (tty) {
+    LOG_DEBUG("colorEnabled: 1");
     return true;
-  return isatty(fileno(stdout)) != 0;
+  } else {
+    LOG_DEBUG("colorEnabled: 0");
+    return false;
+  }
 }
 
 std::string_view red() { return g_enabled ? "\033[31m" : ""; }
@@ -23,7 +31,7 @@ std::string_view reset() { return g_enabled ? "\033[0m" : ""; }
 std::string colored(std::string_view text, std::string_view color) {
   std::string out;
   out.reserve(text.size() + color.size() + reset().size());
-  out.append(text).append(color).append(reset());
+  out.append(color).append(text).append(reset());
   return out;
 }
 
