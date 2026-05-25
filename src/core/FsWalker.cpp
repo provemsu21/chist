@@ -1,5 +1,6 @@
 #include "CacheDetector.hpp"
 #include "FsWalker.hpp"
+#include "cli/TtyLine.hpp"
 #include <cstdlib>
 #include <filesystem>
 #include <functional>
