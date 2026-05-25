@@ -50,7 +50,9 @@ add_library(chist_cli STATIC
     src/cli/CmdScan.cpp
     src/cli/CmdSysinf.cpp
     src/cli/CmdTop.cpp
-    src/cli/CommandRegistry.cpp)
+    src/cli/CommandRegistry.cpp
+    src/cli/Style.cpp
+    src/cli/TtyLine.cpp)
 target_include_directories(chist_cli PUBLIC src/)
 target_link_libraries(chist_cli PRIVATE chist_core
                                         chist_platform
