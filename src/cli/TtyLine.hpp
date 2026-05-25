@@ -7,6 +7,8 @@ namespace tty_line {
 
 void updateLine(std::string_view label, std::string_view body);
 void finish(std::string_view final_msg = {});
+void show_cursor();
+void hide_cursor();
 
 class Cursor {
 public:

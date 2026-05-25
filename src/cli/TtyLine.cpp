@@ -56,14 +56,18 @@ void finish(std::string_view final_msg) {
   std::cout << kClearLine << final_msg << std::endl;
 }
 
+void show_cursor() { std::cout << "\033[?25h" << std::flush; }
+
+void hide_cursor() { std::cout << "\033[?25l" << std::flush; }
+
 Cursor::Cursor() {
   if (g_is_tty)
-    std::cout << "\033[?25l" << std::flush;
+    hide_cursor();
 }
 
 Cursor::~Cursor() {
   if (g_is_tty)
-    std::cout << "\033[?25h" << std::flush;
+    show_cursor();
 }
 
 } // namespace tty_line
