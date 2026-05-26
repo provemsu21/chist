@@ -6,8 +6,11 @@
 #include "cli/Style.hpp"
 #include "cli/TtyLine.hpp"
 #include <atomic>
+#include <chrono>
 #include <mutex>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <unordered_map>
 
 namespace deduplicator {
@@ -129,6 +132,18 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
   {
     TIME_SCOPE("sort by hash head");
 
+    size_t total = all_files.size();
+    tty_line::ProgressBar bar(total);
+    std::atomic<bool> done{false};
+
+    threadpool::ThreadPool pool(1);
+    pool.submit([&bar, &done, &head_files_cnt]() {
+      while (!done.load()) {
+        bar.updateBar("HeadHash: ", head_files_cnt.load());
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      }
+    });
+
     threadpool::parallel_for_each(
         all_files,
         [&hashHead, &by_head, &head_files_cnt, &hm](const auto &pair) {
@@ -137,10 +152,18 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
           if (head.empty())
             return;
 
-          std::lock_guard<std::mutex> lock(hm);
-          by_head[head].push_back(file);
+          {
+            std::lock_guard<std::mutex> lock(hm);
+            by_head[head].push_back(file);
+          }
           head_files_cnt++;
         });
+
+    done.store(true);
+
+    std::string fin =
+        "Head hashed: " + std::to_string(head_files_cnt) + " files";
+    bar.finishProgress(fin);
   }
 
   {
