@@ -1,6 +1,5 @@
 #include "CacheDetector.hpp"
 #include "FsWalker.hpp"
-#include "cli/TtyLine.hpp"
 #include <cstdlib>
 #include <filesystem>
 #include <functional>
@@ -74,12 +73,10 @@ void walkImpl(const fs::path &dir, const fswalker::Visitor &visitor,
     if (lstat(entry_path.c_str(), &st) == 0) {
       const FileId fi = {st.st_dev, st.st_ino};
       if (S_ISREG(st.st_mode)) {
-        auto [sit, inserted] = seen.insert(fi);
-        if (inserted)
+        if (seen.insert(fi).second)
           visitor(entry_path, st);
       } else if (S_ISDIR(st.st_mode)) {
-        auto [sit, inserted] = seen.insert(fi);
-        if (inserted) {
+        if (seen.insert(fi).second) {
           walkImpl(entry_path, visitor, seen);
         }
       }
