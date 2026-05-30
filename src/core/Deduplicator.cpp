@@ -114,6 +114,8 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
     all_files = toVector(by_size);
   }
 
+  std::unordered_map<uintmax_t, std::vector<fs::path>>().swap(by_size);
+
   constexpr size_t HEAD_BYTES = 512;
 
   auto hashHead = [&](const fs::path &p) -> std::string {
