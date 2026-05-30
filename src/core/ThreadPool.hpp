@@ -55,12 +55,20 @@ concept Container = requires(Cont c) {
 template <Container Container, typename F>
 void parallel_for_each(const Container &container, F func) {
   static ThreadPool pool(std::thread::hardware_concurrency() * 2);
+  static const size_t chunk_size = std::thread::hardware_concurrency() * 2;
 
   std::vector<std::future<void>> fut;
-  fut.reserve(container.size());
+  fut.reserve(chunk_size);
 
   for (const auto &el : container) {
     fut.push_back(pool.submit([&el, &func] { func(el); }));
+
+    if (fut.size() >= chunk_size) {
+      for (std::future<void> &f : fut) {
+        f.get();
+      }
+      fut.clear();
+    }
   }
 
   for (std::future<void> &f : fut) {
