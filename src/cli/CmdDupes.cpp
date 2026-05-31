@@ -2,6 +2,8 @@
 #include "../cleaner/Cleaner.hpp"
 #include "../core/Deduplicator.hpp"
 #include "CommandRegistry.hpp"
+#include "Progress.hpp"
+#include "TtyLine.hpp"
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -13,7 +15,10 @@ Command makeDupesCmd() {
       .name = "dupes",
       .description = "Find duplicate files by size and hash",
       .handler = [](const CmdArgs &args) {
-        auto table = deduplicator::findDuplicates(args.path, args.algo);
+        progress::TtyProgress prog;
+        tty_line::Cursor cursor_guard{};
+
+        auto table = deduplicator::findDuplicates(args.path, args.algo, &prog);
 
         int group = 1;
 
@@ -23,7 +28,7 @@ Command makeDupesCmd() {
 
         std::vector<fs::path> to_clean;
         for (auto &[hash, vec] : table) {
-          std::cout << "Group " << group++ << '\n';
+          std::cout << "Duplicate group " << group++ << '\n';
           std::cout << "Hash " << hash << '\n';
           for (auto &path : vec) {
             std::cout << path << '\n';

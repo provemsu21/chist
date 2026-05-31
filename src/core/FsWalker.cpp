@@ -57,7 +57,7 @@ bool isInBlocked(const fs::path &p) {
   return cache_detector::isCache(p);
 }
 
-void walkImpl(const fs::path &dir, const fswalker::Visitor &visitor,
+void walkImpl(const fs::path &dir, const Visitor &visitor,
               std::unordered_set<FileId, FileHash> &seen) {
   if (isInBlocked(dir))
     return;
@@ -74,10 +74,14 @@ void walkImpl(const fs::path &dir, const fswalker::Visitor &visitor,
       const FileId fi = {st.st_dev, st.st_ino};
       if (S_ISREG(st.st_mode)) {
         if (seen.insert(fi).second)
-          visitor(entry_path, st);
+          visitor.onFile(entry_path, st);
       } else if (S_ISDIR(st.st_mode)) {
         if (seen.insert(fi).second) {
+          if (visitor.onDir)
+            visitor.onDir(entry_path, st);
           walkImpl(entry_path, visitor, seen);
+          if (visitor.onDirExit)
+            visitor.onDirExit(entry_path);
         }
       }
     }

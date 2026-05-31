@@ -1,4 +1,4 @@
-#include "../core/Deduplicator.hpp"
+#include "../core/Hasher.hpp"
 #include "CommandRegistry.hpp"
 #include <iomanip>
 #include <iostream>
@@ -42,7 +42,7 @@ CmdArgs CommandRegistry::parseArgs(int argc, char **argv) {
     } else if (arg == "--algo" && i + 1 < argc) {
       std::string algo = argv[++i];
       if (algo == "sha256")
-        args.algo = deduplicator::HashType::SHA256;
+        args.algo = hasher::HashType::SHA256;
     } else if (arg[0] != '-') {
       args.path = arg;
     }

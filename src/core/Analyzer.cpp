@@ -21,10 +21,16 @@ DiskInfo getDiskInfo(const fs::path &path) {
 
 std::vector<FileEntry> getTopFiles(const fs::path &path, size_t limit) {
   std::vector<FileEntry> files;
+  fswalker::Visitor visitor;
 
-  fswalker::walk(path, [&files](const fs::path &p, const struct stat &st) {
+  visitor.onDir = [&files](const fs::path &p, const struct stat &st) {
     files.push_back({p, static_cast<uintmax_t>(st.st_size)});
-  });
+  };
+
+  visitor.onFile = [](const fs::path &, const struct stat &) {};
+  visitor.onDirExit = [](const fs::path &) {};
+
+  fswalker::walk(path, visitor);
 
   ranges::sort(files, ranges::greater(), &FileEntry::size);
 

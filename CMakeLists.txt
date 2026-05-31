@@ -16,6 +16,7 @@ add_library(chist_core STATIC
     src/core/FsWalker.cpp
     src/core/ThreadPool.cpp
     src/core/CacheDetector.cpp
+    src/core/Tree.cpp
 )
 target_include_directories(chist_core PUBLIC src/)
 target_compile_options(chist_core PRIVATE
@@ -52,7 +53,8 @@ add_library(chist_cli STATIC
     src/cli/CmdTop.cpp
     src/cli/CommandRegistry.cpp
     src/cli/Style.cpp
-    src/cli/TtyLine.cpp)
+    src/cli/TtyLine.cpp
+    src/cli/Progress.cpp)
 target_include_directories(chist_cli PUBLIC src/)
 target_link_libraries(chist_cli PRIVATE chist_core
                                         chist_platform
