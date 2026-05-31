@@ -38,8 +38,7 @@ toVector(const std::unordered_map<Key, std::vector<fs::path>> &map) {
   return vec;
 }
 
-template <typename Algo>
-HashTable calcAndGroup(const HashTable &by_head, const Algo &algo) {
+HashTable calcAndGroup(const HashTable &by_head, hasher::HashType type) {
   LOG_DEBUG("calcAndGroup started");
   std::vector<std::pair<std::string, fs::path>> by_head_vec;
   {
@@ -54,9 +53,9 @@ HashTable calcAndGroup(const HashTable &by_head, const Algo &algo) {
   {
     TIME_SCOPE("sort by full hash");
     threadpool::parallel_for_each(
-        by_head_vec, [&algo, &table, &cnt, &tm](const auto &pair) {
+        by_head_vec, [type, &table, &cnt, &tm](const auto &pair) {
           const auto &[head_hash, file] = pair;
-          std::string hash = hasher::getHash(file, algo);
+          std::string hash = hasher::getHash(file, type);
           if (hash.empty()) {
             return;
           }
@@ -72,7 +71,7 @@ HashTable calcAndGroup(const HashTable &by_head, const Algo &algo) {
 }
 } // namespace
 
-HashTable findDuplicates(const fs::path &path, HashType type) {
+HashTable findDuplicates(const fs::path &path, hasher::HashType type) {
   LOG_DEBUG("findDuplicated started");
   tty_line::Cursor cursor_guard{};
 
@@ -117,14 +116,6 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
 
   constexpr size_t HEAD_BYTES = 512;
 
-  auto hashHead = [&](const fs::path &p) -> std::string {
-    if (type == HashType::MD5) {
-      return hasher::MD5Algorithm{}.computeHead(p, HEAD_BYTES);
-    } else {
-      return hasher::SHA256Algorithm{}.computeHead(p, HEAD_BYTES);
-    }
-  };
-
   std::atomic<size_t> head_files_cnt{0};
 
   std::unordered_map<std::string, std::vector<fs::path>> by_head;
@@ -146,10 +137,9 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
     });
 
     threadpool::parallel_for_each(
-        all_files,
-        [&hashHead, &by_head, &head_files_cnt, &hm](const auto &pair) {
+        all_files, [type, &by_head, &head_files_cnt, &hm](const auto &pair) {
           const auto &[sz, file] = pair;
-          std::string head = hashHead(file);
+          std::string head = hasher::getHeadHash(file, HEAD_BYTES, type);
           if (head.empty())
             return;
 
@@ -179,11 +169,7 @@ HashTable findDuplicates(const fs::path &path, HashType type) {
 
   HashTable table;
 
-  if (type == HashType::MD5) {
-    table = calcAndGroup(by_head, hasher::MD5Algorithm{});
-  } else {
-    table = calcAndGroup(by_head, hasher::SHA256Algorithm{});
-  }
+  table = calcAndGroup(by_head, type);
 
   {
     TIME_SCOPE("erase singletons by full hash");

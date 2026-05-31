@@ -9,10 +9,7 @@ namespace hasher {
 
 namespace fs = std::filesystem;
 
-template <typename Algo>
-concept HashAlgorithm = requires(Algo a, const fs::path &path) {
-  { a.compute(path) } -> std::convertible_to<std::string>;
-};
+enum class HashType { MD5, SHA256 };
 
 struct HashAlgorithm {
   virtual ~HashAlgorithm() = default;
@@ -30,15 +27,11 @@ struct SHA256Algorithm : HashAlgorithm {
   std::string computeHead(const fs::path &path, size_t bytes) const;
 };
 
-template <HashAlgorithm Algo>
-std::string getHash(const fs::path &path, Algo algo) {
-  return algo.compute(path);
-}
+std::string getHash(const fs::path &path, HashType type);
 
-template <HashAlgorithm Algo>
-std::string getHeadHash(const fs::path &path, size_t bytes, Algo algo) {
-  return algo.computeHead(path, bytes);
-}
+std::string getHeadHash(const fs::path &path, size_t bytes, HashType type);
+
+std::string hashBytes(const void *data, size_t len, HashType type);
 
 } // namespace hasher
 

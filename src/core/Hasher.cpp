@@ -13,6 +13,20 @@
 
 namespace hasher {
 
+std::string getHash(const fs::path &path, HashType type) {
+  if (type == HashType::MD5) {
+    return MD5Algorithm{}.compute(path);
+  }
+  return SHA256Algorithm{}.compute(path);
+}
+
+std::string getHeadHash(const fs::path &path, size_t bytes, HashType type) {
+  if (type == HashType::MD5) {
+    return MD5Algorithm{}.computeHead(path, bytes);
+  }
+  return SHA256Algorithm{}.computeHead(path, bytes);
+}
+
 #ifdef __APPLE__
 
 namespace {
@@ -138,10 +152,22 @@ std::string SHA256Algorithm::computeHead(const fs::path &path,
   return toHex(hash);
 }
 
+std::string hashBytes(const void *data, size_t len, HashType type) {
+  if (type == HashType::MD5) {
+    unsigned char digest[CC_MD5_DIGEST_LENGTH];
+    CC_MD5(data, static_cast<CC_LONG>(len), digest);
+    return toHex(digest);
+  } else {
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH];
+    CC_SHA256(data, static_cast<CC_LONG>(len), digest);
+    return toHex(digest);
+  }
+
 #else
 
 std::string MD5Algorithm::compute(const fs::path &path) const {}
 std::string SHA256Algorithm::compute(const fs::path &path) const {}
-
+std::string hashBytes(const void *data, size_t len, HashType type) {}
 #endif
+}
 } // namespace hasher
