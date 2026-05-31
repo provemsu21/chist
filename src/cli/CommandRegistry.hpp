@@ -1,7 +1,7 @@
 #ifndef CLI_COMMANDREGISTRY_HPP_
 #define CLI_COMMANDREGISTRY_HPP_
 
-#include "../core/Deduplicator.hpp"
+#include "../core/Hasher.hpp"
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -17,7 +17,7 @@ struct CmdArgs {
   fs::path path = fs::current_path();
   bool yes = false;
   size_t n = 10;
-  deduplicator::HashType algo = deduplicator::HashType::MD5;
+  hasher::HashType algo = hasher::HashType::MD5;
 };
 
 struct Command {
