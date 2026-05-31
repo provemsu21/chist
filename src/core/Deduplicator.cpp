@@ -1,6 +1,5 @@
 #include "Deduplicator.hpp"
 #include "FsWalker.hpp"
-#include "Hasher.hpp"
 #include "Log.hpp"
 #include "ThreadPool.hpp"
 #include "cli/Style.hpp"

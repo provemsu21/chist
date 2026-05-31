@@ -14,12 +14,18 @@ concept HashAlgorithm = requires(Algo a, const fs::path &path) {
   { a.compute(path) } -> std::convertible_to<std::string>;
 };
 
-struct MD5Algorithm {
-  std::string compute(const fs::path &path) const;
-  std::string computeHead(const fs::path &path, size_t bytes) const;
+struct HashAlgorithm {
+  virtual ~HashAlgorithm() = default;
+  virtual std::string compute(const fs::path &path) const = 0;
+  virtual std::string computeHead(const fs::path &path, size_t bytes) const = 0;
 };
 
-struct SHA256Algorithm {
+struct MD5Algorithm : HashAlgorithm {
+  std::string compute(const fs::path &path) const override;
+  std::string computeHead(const fs::path &path, size_t bytes) const override;
+};
+
+struct SHA256Algorithm : HashAlgorithm {
   std::string compute(const fs::path &path) const;
   std::string computeHead(const fs::path &path, size_t bytes) const;
 };
